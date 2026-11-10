@@ -11,24 +11,24 @@
 * NFR2: Passwords are stored hashed, never as plain text.
 * NFR3: The interface is simple enough to use without instructions.
 # User stories
-## US1 (FR1): Register and log in As a student, I want to create an account and log in, so that my records stay private.
+## US1 (FR1): Register and log inAs a student, I want to create an account and log in, so that my records stay private.
 * Registering with a new username and password creates an account.
 * Logging in with wrong details shows an error.
-## US2 (FR2): Add income As a student, I want to record money I receive, so that I know how much I have.
+## US2 (FR2): Add incomeAs a student, I want to record money I receive, so that I know how much I have.
 * Amount, source, and date are required.
 * The new entry appears in my transaction list.
-## US3 (FR3): Add expense As a student, I want to record what I spend, so that I know where my money goes.
+## US3 (FR3): Add expenseAs a student, I want to record what I spend, so that I know where my money goes.
 * Amount, category, and date are required.
 * Amount must be greater than zero.
-## US4 (FR4): Manage transactions As a student, I want to view, edit, and delete entries, so that I can fix mistakes.
+## US4 (FR4): Manage transactionsAs a student, I want to view, edit, and delete entries, so that I can fix mistakes.
 * All my transactions are listed, newest first.
 * Edits and deletions are saved and shown immediately.
-## US5 (FR5): Set a budget As a student, I want to set a monthly budget, so that I have a spending limit to follow.
+## US5 (FR5): Set a budgetAs a student, I want to set a monthly budget, so that I have a spending limit to follow.
 * I can enter one budget amount per month.
 * I can change it later.
-## US6 (FR6): Budget warning As a student, I want a warning when I pass my budget, so that I can stop overspending.
+## US6 (FR6): Budget warningAs a student, I want a warning when I pass my budget, so that I can stop overspending.
 * The warning appears when total expenses for the month exceed the budget.
 * No warning appears while I'm under it.
-## US7 (FR7): Spending summary As a student, I want to see spending grouped by category, so that I can see my biggest expenses.
+## US7 (FR7): Spending summaryAs a student, I want to see spending grouped by category, so that I can see my biggest expenses.
 * The summary shows each category's total for the chosen month.
 * The totals match my transaction list.
