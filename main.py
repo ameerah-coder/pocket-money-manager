@@ -1,3 +1,6 @@
+import hashlib
+import hmac
+import os
 from typing import Literal, Optional
 from pydantic import BaseModel, Field
 import sqlite3
@@ -132,5 +135,50 @@ def summary(user_id: int, month: str):
         "over_budget": over_budget,
         "warning": "You have exceeded your budget!" if over_budget else None,
     }
+def hash_password(password: str) -> str:
+    salt = os.urandom(16)
+    digest = hashlib.pbkdf2_hmac("sha256", password.encode(), salt, 200_000)
+    return salt.hex() + ":" + digest.hex()
+
+def verify_password(password: str, stored: str) -> bool:
+    if ":" not in stored:
+        return False
+    salt_hex, digest_hex = stored.split(":")
+    digest = hashlib.pbkdf2_hmac(
+        "sha256", password.encode(), bytes.fromhex(salt_hex), 200_000
+    )
+    return hmac.compare_digest(digest.hex(), digest_hex)
+
+class UserIn(BaseModel):
+    username: str = Field(min_length=3, max_length=30)
+    password: str = Field(min_length=6)
+
+@app.post("/register")
+def register(u: UserIn):
+    conn = get_db()
+    try:
+        cur = conn.execute(
+            "INSERT INTO users (username, password_hash) VALUES (?, ?)",
+            (u.username, hash_password(u.password)),
+        )
+        conn.commit()
+    except sqlite3.IntegrityError:
+        conn.close()
+        raise HTTPException(status_code=400, detail="Username already taken")
+    new_id = cur.lastrowid
+    conn.close()
+    return {"id": new_id, "message": "Account created"}
+
+@app.post("/login")
+def login(u: UserIn):
+    conn = get_db()
+    row = conn.execute(
+        "SELECT id, password_hash FROM users WHERE username = ?",
+        (u.username,),
+    ).fetchone()
+    conn.close()
+    if row is None or not verify_password(u.password, row["password_hash"]):
+        raise HTTPException(status_code=401, detail="Wrong username or password")
+    return {"user_id": row["id"], "message": "Login successful"}
 
 
