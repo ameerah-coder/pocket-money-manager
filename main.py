@@ -63,5 +63,40 @@ def update_transaction(transaction_id: int, t: TransactionIn):
     if cur.rowcount == 0:
         raise HTTPException(status_code=404, detail="Transaction not found")
     return {"message": "Transaction updated"}
+class BudgetIn(BaseModel):
+    user_id: int
+    month: str = Field(pattern=r"^\d{4}-\d{2}$")
+    amount: float = Field(gt=0)
+
+@app.put("/budgets")
+def set_budget(b: BudgetIn):
+    conn = get_db()
+    existing = conn.execute(
+        "SELECT id FROM budgets WHERE user_id = ? AND month = ?",
+        (b.user_id, b.month),
+    ).fetchone()
+    if existing:
+        conn.execute("UPDATE budgets SET amount = ? WHERE id = ?",
+                     (b.amount, existing["id"]))
+        message = "Budget updated"
+    else:
+        conn.execute("INSERT INTO budgets (user_id, month, amount) VALUES (?, ?, ?)",
+                     (b.user_id, b.month, b.amount))
+        message = "Budget created"
+    conn.commit()
+    conn.close()
+    return {"message": message}
+
+@app.get("/budgets/{user_id}/{month}")
+def get_budget(user_id: int, month: str):
+    conn = get_db()
+    row = conn.execute(
+        "SELECT * FROM budgets WHERE user_id = ? AND month = ?",
+        (user_id, month),
+    ).fetchone()
+    conn.close()
+    if row is None:
+        raise HTTPException(status_code=404, detail="No budget set for that month")
+    return dict(row)
 
 
