@@ -2,3 +2,4 @@ pocket.db
 venv
 __pycache__
 git add main.py .gitignore, git commit -m "Add API endpoints", git push.
+test_pocket.db

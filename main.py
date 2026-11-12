@@ -12,10 +12,10 @@ from pydantic import BaseModel, Field
 app = FastAPI()
 bearer = HTTPBearer()
 sessions = {}  # token -> user_id
-
+DB_PATH = os.environ.get("POCKET_DB", "pocket.db")
 
 def get_db():
-    conn = sqlite3.connect("pocket.db")
+    conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
 
