@@ -98,5 +98,39 @@ def get_budget(user_id: int, month: str):
     if row is None:
         raise HTTPException(status_code=404, detail="No budget set for that month")
     return dict(row)
+@app.get("/summary/{user_id}/{month}")
+def summary(user_id: int, month: str):
+    conn = get_db()
+    rows = conn.execute(
+        "SELECT category, SUM(amount) AS total FROM transactions "
+        "WHERE user_id = ? AND type = 'expense' AND substr(date, 1, 7) = ? "
+        "GROUP BY category",
+        (user_id, month),
+    ).fetchall()
+    income_row = conn.execute(
+        "SELECT COALESCE(SUM(amount), 0) AS total FROM transactions "
+        "WHERE user_id = ? AND type = 'income' AND substr(date, 1, 7) = ?",
+        (user_id, month),
+    ).fetchone()
+    budget_row = conn.execute(
+        "SELECT amount FROM budgets WHERE user_id = ? AND month = ?",
+        (user_id, month),
+    ).fetchone()
+    conn.close()
+
+    by_category = {(r["category"] or "uncategorised"): r["total"] for r in rows}
+    total_spent = sum(by_category.values())
+    budget = budget_row["amount"] if budget_row else None
+    over_budget = budget is not None and total_spent > budget
+
+    return {
+        "month": month,
+        "total_income": income_row["total"],
+        "total_spent": total_spent,
+        "spent_by_category": by_category,
+        "budget": budget,
+        "over_budget": over_budget,
+        "warning": "You have exceeded your budget!" if over_budget else None,
+    }
 
 
