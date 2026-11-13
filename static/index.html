@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pocket-Money Manager</title>
+  <style>
+    body { font-family: sans-serif; max-width: 600px; margin: 2rem auto; padding: 0 1rem; }
+    input, button { padding: 0.5rem; margin: 0.25rem 0; }
+    .box { border: 1px solid #ccc; border-radius: 8px; padding: 1rem; margin-bottom: 1rem; }
+    .hidden { display: none; }
+    #message { color: #b00020; }
+  </style>
+</head>
+<body>
+  <h1>Pocket-Money Manager</h1>
+  <p id="message"></p>
+
+  <div id="loginBox" class="box">
+    <h2>Log in or register</h2>
+    <input id="username" placeholder="Username"><br>
+    <input id="password" type="password" placeholder="Password"><br>
+    <button onclick="login()">Log in</button>
+    <button onclick="register()">Register</button>
+  </div>
+
+  <div id="appBox" class="box hidden">
+    <p>You are logged in. <button onclick="logout()">Log out</button></p>
+  </div>
+
+  <script>
+    let token = null;
+
+    function showMessage(text) {
+      document.getElementById("message").textContent = text;
+    }
+
+    async function sendCredentials(path) {
+      const response = await fetch(path, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: document.getElementById("username").value,
+          password: document.getElementById("password").value
+        })
+      });
+      const data = await response.json();
+      return { ok: response.ok, data: data };
+    }
+
+    function errorText(data) {
+      if (typeof data.detail === "string") return data.detail;
+      return "Username needs 3+ characters and password 6+.";
+    }
+
+    async function register() {
+      const result = await sendCredentials("/register");
+      showMessage(result.ok ? "Account created. Now log in." : errorText(result.data));
+    }
+
+    async function login() {
+      const result = await sendCredentials("/login");
+      if (!result.ok) {
+        showMessage(errorText(result.data));
+        return;
+      }
+      token = result.data.token;
+      showMessage("");
+      document.getElementById("loginBox").classList.add("hidden");
+      document.getElementById("appBox").classList.remove("hidden");
+    }
+
+    function logout() {
+      token = null;
+      document.getElementById("appBox").classList.add("hidden");
+      document.getElementById("loginBox").classList.remove("hidden");
+    }
+  </script>
+</body>
+</html>

@@ -4,7 +4,7 @@ import os
 import secrets
 import sqlite3
 from typing import Literal, Optional
-
+from fastapi.responses import FileResponse
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, Field
@@ -224,3 +224,6 @@ def summary(month: str, user_id: int = Depends(current_user)):
         "over_budget": over_budget,
         "warning": "You have exceeded your budget!" if over_budget else None,
     }
+@app.get("/app")
+def frontend():
+    return FileResponse("static/index.html")
