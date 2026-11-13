@@ -14,6 +14,7 @@
     th, td { text-align: left; padding: 0.4rem; border-bottom: 1px solid #eee; }
     .income { color: #1b7f3b; }
     .expense { color: #b00020; }
+    .warning { background: #fdecea; color: #b00020; padding: 0.6rem; border-radius: 6px; font-weight: bold; }
   </style>
 </head>
 <body>
@@ -30,6 +31,26 @@
 
   <div id="appBox" class="hidden">
     <p><button onclick="logout()">Log out</button></p>
+
+    <div class="box">
+      <h2>Monthly summary</h2>
+      <label>Month:
+        <input id="month" placeholder="YYYY-MM" size="8" onchange="loadSummary()">
+      </label>
+      <button onclick="loadSummary()">Show</button><br>
+      <input id="budgetInput" type="number" min="0" step="0.01" placeholder="Budget amount">
+      <button onclick="setBudget()">Set budget</button>
+
+      <p id="warning" class="warning hidden"></p>
+      <p>Income: <b id="totalIncome">0</b></p>
+      <p>Spent: <b id="totalSpent">0</b></p>
+      <p>Budget: <b id="budgetValue">not set</b></p>
+      <p>Remaining: <b id="remaining">-</b></p>
+
+      <h3>Spending by category</h3>
+      <ul id="categoryList"></ul>
+      <p id="noCategories">No spending this month.</p>
+    </div>
 
     <div class="box">
       <h2>Add a transaction</h2>
@@ -65,7 +86,7 @@
 
     function errorText(data) {
       if (typeof data.detail === "string") return data.detail;
-      return "Please check the fields: username 3+ characters, password 6+, amount above zero.";
+      return "Please check the fields: username 3+ characters, password 6+, amount above zero, month like 2026-11.";
     }
 
     async function api(path, method, body) {
@@ -102,8 +123,11 @@
       showMessage("");
       document.getElementById("loginBox").classList.add("hidden");
       document.getElementById("appBox").classList.remove("hidden");
-      document.getElementById("date").value = new Date().toISOString().slice(0, 10);
+      const today = new Date().toISOString().slice(0, 10);
+      document.getElementById("date").value = today;
+      document.getElementById("month").value = today.slice(0, 7);
       loadTransactions();
+      loadSummary();
     }
 
     function logout() {
@@ -137,7 +161,92 @@
         addCell(row, t.category || "");
         addCell(row, t.note || "");
         addCell(row, t.amount);
-    }}
-    </script>
-  </body>
-  </html>  
+
+        const actionCell = document.createElement("td");
+        const button = document.createElement("button");
+        button.textContent = "Delete";
+        button.onclick = function () { deleteTransaction(t.id); };
+        actionCell.appendChild(button);
+        row.appendChild(actionCell);
+
+        body.appendChild(row);
+      }
+    }
+
+    async function addTransaction() {
+      const result = await api("/transactions", "POST", {
+        type: document.getElementById("type").value,
+        amount: Number(document.getElementById("amount").value),
+        category: document.getElementById("category").value || null,
+        note: document.getElementById("note").value || null,
+        date: document.getElementById("date").value
+      });
+      if (!result.ok) {
+        showMessage(errorText(result.data));
+        return;
+      }
+      showMessage("");
+      document.getElementById("amount").value = "";
+      document.getElementById("category").value = "";
+      document.getElementById("note").value = "";
+      loadTransactions();
+      loadSummary();
+    }
+
+    async function deleteTransaction(id) {
+      const result = await api("/transactions/" + id, "DELETE");
+      if (!result.ok) {
+        showMessage(errorText(result.data));
+        return;
+      }
+      loadTransactions();
+      loadSummary();
+    }
+
+    async function loadSummary() {
+      const month = document.getElementById("month").value;
+      if (!/^\d{4}-\d{2}$/.test(month)) {
+        showMessage("Enter the month like 2026-11.");
+        return;
+      }
+      showMessage("");
+      const result = await api("/summary/" + month);
+      if (!result.ok) {
+        showMessage(errorText(result.data));
+        return;
+      }
+      const s = result.data;
+      document.getElementById("totalIncome").textContent = s.total_income;
+      document.getElementById("totalSpent").textContent = s.total_spent;
+      document.getElementById("budgetValue").textContent = s.budget === null ? "not set" : s.budget;
+      document.getElementById("remaining").textContent = s.budget === null ? "-" : s.budget - s.total_spent;
+
+      const warning = document.getElementById("warning");
+      warning.textContent = s.warning || "";
+      warning.classList.toggle("hidden", !s.warning);
+
+      const list = document.getElementById("categoryList");
+      list.innerHTML = "";
+      const entries = Object.entries(s.spent_by_category);
+      document.getElementById("noCategories").classList.toggle("hidden", entries.length > 0);
+      for (const [name, total] of entries) {
+        const item = document.createElement("li");
+        item.textContent = name + ": " + total;
+        list.appendChild(item);
+      }
+    }
+
+    async function setBudget() {
+      const month = document.getElementById("month").value;
+      const amount = Number(document.getElementById("budgetInput").value);
+      const result = await api("/budgets", "PUT", { month: month, amount: amount });
+      if (!result.ok) {
+        showMessage(errorText(result.data));
+        return;
+      }
+      showMessage("");
+      loadSummary();
+    }
+  </script>
+</body>
+</html>
